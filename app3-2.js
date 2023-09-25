@@ -37,7 +37,7 @@ app.use(passport.session()); //use passport to handle the session
 
 // SET UP DATABASE /////////////////////////////////////////////////////////////
 mongoose.connect(
-  "mongodb+srv://admin-jay:test123@cluster0.mhhfphq.mongodb.net/userDB",
+  `mongodb+srv://admin-jay:${process.env.MONGO_ATLAS_PASSWORD}@cluster0.mhhfphq.mongodb.net/userDB`,
   {
     useNewUrlParser: true,
   }
