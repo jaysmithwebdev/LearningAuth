@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema({
   password: String,
   googleId: String,
   facebookId: String,
+  secret: String,
 });
 
 // level 5 - add passport plugin to mongoose schema
@@ -156,6 +157,25 @@ app.get("/secrets", function (req, res) {
     res.render("secrets");
   } else {
     res.redirect("/login");
+  }
+});
+
+app.get("/submit", function (req, res) {
+  if (req.isAuthenticated()) {
+    res.render("submit");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.post("/submit", async function (req, res) {
+  //console.log(req.user); //req.user gives the mongo id
+  const submittedSecret = req.body.secret;
+  const currentUser = await User.findById(req.user);
+  if (currentUser) {
+    currentUser.secret = submittedSecret;
+    await currentUser.save();
+    res.redirect("/secrets");
   }
 });
 
