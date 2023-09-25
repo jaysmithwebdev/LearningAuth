@@ -1,3 +1,4 @@
+// app3 - adding Google OAuth
 //jshint esversion:6
 // level 3 - dotenv for environment vars - use at top of code
 require("dotenv").config();
@@ -11,6 +12,10 @@ const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 // passport-local does not need requiring (only npm i, putting in the package.json) - it is a dependency of passport-local-mongoose
+// google oauth bits
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+// use mongoose-findorcreate to enable the pseudo code to actually work
+const findOrCreate = require("mongoose-findorcreate");
 
 const app = express();
 
@@ -44,22 +49,64 @@ mongoose.connect(
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
+  // add googleId field so findOrCreate method has something to search
+  googleId: String,
 });
 
 // level 5 - add passport plugin to mongoose schema
 userSchema.plugin(passportLocalMongoose);
+userSchema.plugin(findOrCreate);
 
 const User = new mongoose.model("User", userSchema);
 
 // level 5
 passport.use(User.createStrategy()); // local log in strategy
-passport.serializeUser(User.serializeUser()); // create cookies
-passport.deserializeUser(User.deserializeUser()); // read cookies
+// simple serialization only works for local, need more to work with all strategies
+// passport.serializeUser(User.serializeUser()); // create cookies
+// passport.deserializeUser(User.deserializeUser()); // read cookies
+passport.serializeUser(function (user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser(function (id, done) {
+  User.findById(id);
+});
+
+// google strategy
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.CLIENT_ID,
+      clientSecret: process.env.CLIENT_SECRET,
+      callbackURL: "http://localhost:3000/auth/google/secrets",
+      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+    },
+    function (accessToken, refreshToken, profile, cb) {
+      User.findOrCreate({ googleId: profile.id }, function (err, user) {
+        return cb(err, user);
+      });
+    }
+  )
+);
 
 // ROUTES //////////////////////////////////////////////////////////////////////
 app.get("/", function (req, res) {
   res.render("home");
 });
+
+app.get(
+  "/auth/google",
+  passport.authenticate("google", { scope: ["profile"] })
+);
+
+app.get(
+  "/auth/google/secrets",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  // Successful authentication, redirect home.
+  function (req, res) {
+    res.redirect("/secrets");
+  }
+);
 
 app.get("/login", function (req, res) {
   res.render("login");
