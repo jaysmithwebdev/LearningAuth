@@ -46,6 +46,7 @@ mongoose.connect(
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
+  googleId: String,
 });
 
 // level 5 - add passport plugin to mongoose schema
