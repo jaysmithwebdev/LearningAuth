@@ -152,11 +152,14 @@ app.get("/register", function (req, res) {
   res.render("register");
 });
 
-app.get("/secrets", function (req, res) {
-  if (req.isAuthenticated()) {
-    res.render("secrets");
+app.get("/secrets", async function (req, res) {
+  const foundUsers = await User.find({ secret: { $ne: null } }).exec();
+  // $ne: is a way of doing != inside these condition objects
+  // mongoose.find() needs .exec() to return the data
+  if (foundUsers) {
+    res.render("secrets", { usersWithSecrets: foundUsers });
   } else {
-    res.redirect("/login");
+    res.redirect("/");
   }
 });
 
